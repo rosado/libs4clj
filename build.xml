@@ -1,4 +1,4 @@
-<project name="clojure-contrib" default="jar">
+<project name="various-clojure-wrappers" default="jar">
 
   <description>
     Pack all clojure sources into a JAR.
