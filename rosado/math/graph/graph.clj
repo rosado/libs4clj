@@ -3,14 +3,22 @@
 (ns rosado.math.graph)
 
 (defstruct vertex :meta :out)
+(defstruct edge-info :dest :weight)
+
+(derive clojure.lang.IPersistentMap ::compound)
+(derive java.lang.Number ::simple)
+
+(defmulti V class)
+(defmulti E class)
 
 (defn make-vertex
   [m out]
   (struct vertex m out))
 
 (defn make-graph
-  [g]
-  (let [g g]))
+  [num-verts]
+  (let [g (vec (take (inc num-verts)(repeat nil)))]
+	(assoc g 0 {})))
 
 (defn delete-edge
   [g e]
@@ -35,10 +43,14 @@
 (defn add-vertex
   "Adds a vector to graph g. Returns the graph on success,
   nil on failure (when given vertex is already in g)."
-  [g k v]
-  (if (g k)
-	nil
-	(alter-vertex g k v)))
+  ([g k v]
+	 (if (g k)
+	   nil
+	   (alter-vertex g k v)))
+  ([g k]
+	 (if (g k)
+	   nil
+	   (alter-vertex g k (make-vertex nil nil)))))
 
 (defn adjacent-to
   ([v]
@@ -47,6 +59,11 @@
   ([g v]
 	 (if-let vert (g v)
 	   (vert :out))))
+
+(defn degree
+  [vert]
+  (when vert
+	(count (adjacent-to vert))))
 
 (defn tag-vertex
   ([g v mta]
@@ -66,8 +83,8 @@
 (defn delete-vertex
   "Returns the graph with vertex v removed."
   [g v]
-  (let [new-g    (dissoc g v)
-		vertices (map #(nth % 0) new-g)
+  (let [new-g    (alter-vertex g v nil)
+		vertices (for [i (range 1 (count new-g)) :when (not= (new-g i) nil)] i)
 		rm-fn    (fn [vert] (not= v vert))]
 	(loop [verts vertices graph new-g]
 	  (if verts
@@ -79,12 +96,49 @@
 													   (first verts)))))
 		graph))))
 
+(defn- flatten-pairs [coll]
+  (mapcat identity coll))
+
 (defn pairs->graph
   "Produces a graph from a list of ordered pairs [u v],
   where u, v -- vertices."
   [pairs]
-  (let [empty-graph {}]
-	(reduce add-edge (cons empty-graph pairs))))
+	 (let [vert-indices (into #{} (flatten-pairs pairs))
+		   empty-graph  (make-graph (last (sort vert-indices)))
+		   graph (loop [g empty-graph indices vert-indices]
+				   (if indices
+					 (recur (add-vertex g (first indices)) (rest indices))
+					 g))]
+	   (reduce add-edge (cons graph pairs))))
+
+
+(defn- seq-shift<<
+  "(seq-shift<< '(1 2 3) 2) ==> (3 1)"
+  [s n]
+  (take (dec (count s))(drop n (cycle s))))
+
+(defn- get-valid-indices
+  [g]
+  (filter #(not= nil) (range 1 (count g))))
+
+(defn eulerian?
+  "Returns true if graph is Eulerian, false otherwise."
+  [g vi ui]
+  (let [dv (degree (g vi))
+		du (degree (g ui))
+		gsize (count g)]
+	 (if (not= 0 (rem (+ dv du) 2))
+	   false
+	   (let [other-verts (filter #(and %
+									   (not= ui %)
+									   (not= vi %))
+								 (range 1 gsize))]
+		 (loop [verts other-verts]
+		   (if verts
+			 (if (not= 0 (rem (degree (g (first verts))) 2))
+			   false
+			   (recur (rest verts)))
+			 true))))))
 
 (defn acyclic?
   [g]
@@ -95,13 +149,33 @@
   nil)
 
 (defn depth-first-search
-  [g v])
+  [g v] nil)
+
+
+;; utility functions
+
+(defn- adj-list-of->str
+  [vert]
+  (if-let adj (adjacent-to vert)
+	(map #(format "%2d" %) adj)))
+
+(defn print-graph
+  [gr]
+  (let []
+	(doseq i (range 1 (count gr))
+	  (when (gr i)
+		(print (format "%3d: " i))
+		(doseq adj (adj-list-of->str (gr i))
+		  (print adj))
+		(println)))))
 
 ;; tests etc
 (def g1 [[1 1]])
 (def g2 [[1 2] [2 3]])
 (def gx2 [[:a :b] [:b :c]])
 (def g3 [[1 2] [2 3] [2 1]])
+(def g4 [[1 2] [2 3] [3 1]])
+(def g4b [[1 2] [2 3] [3 1] [2 1] [3 2] [1 3]])
 
 (defn to-mathematica-format [pairs]
   (let [format-pair (fn [[x y]] (format "{%d, %d}" x y))
@@ -115,4 +189,4 @@
 
 (to-mathematica-format g1)
 (pairs->graph g3)
-(def g (pairs->graph g3))
+(def g (pairs->graph g4b))
