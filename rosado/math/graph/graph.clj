@@ -20,10 +20,6 @@
   (let [g (vec (take (inc num-verts)(repeat nil)))]
 	(assoc g 0 {})))
 
-(defn delete-edge
-  [g e]
-  nil)
-
 (defn alter-vertex
   "Set the vertex v of graph g to vertex new-v."
   [g v new-v]
@@ -80,6 +76,13 @@
   [g v lst]
   (alter-vertex g v (make-vertex ((g v) :meta) lst)))
 
+(defn delete-edge
+  ([g [a b]]
+	 (alter-adj-list-of g
+						a
+						(filter #(not= b %)
+								(adjacent-to g a)))))
+
 (defn delete-vertex
   "Returns the graph with vertex v removed."
   [g v]
@@ -119,7 +122,7 @@
 
 (defn- get-valid-indices
   [g]
-  (filter #(not= nil) (range 1 (count g))))
+  (filter #(not= nil %) (range 1 (count g))))
 
 (defn eulerian?
   "Returns true if graph is Eulerian, false otherwise."
@@ -139,6 +142,28 @@
 			   false
 			   (recur (rest verts)))
 			 true))))))
+
+(defn euler-path
+  "Finds Euler path in a graph. Assumes the path exists."
+  [g vi]
+  (let [epath (fn [gr v st]
+				(loop [stack st vert v graph gr]
+				  (let [adj (adjacent-to graph vert) w (first adj)]
+					(if adj
+					  (recur (cons w stack)
+							 w
+							 (-> graph
+								 (delete-edge [vert w])
+								 (delete-edge [w vert])))
+					  [graph stack vert]))))]
+	(loop [pvert vi
+		   [graph stack vert] (epath g vi '())
+		   path []]
+	  (cond (and (= pvert vert) (not (empty? stack)))
+			(recur (first stack)
+				   (epath graph (first stack) (rest stack))
+				   (conj path (first stack)))
+			:else path))))
 
 (defn acyclic?
   [g]
@@ -187,6 +212,6 @@
 	(.append sb "}")
 	(.toString sb)))
 
-(to-mathematica-format g1)
-(pairs->graph g3)
+;; (to-mathematica-format g1)
+;; (pairs->graph g3)
 (def g (pairs->graph g4b))
