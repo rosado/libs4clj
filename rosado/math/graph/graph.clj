@@ -86,10 +86,8 @@
 	   (alter-vertex g v (tag-vertex vert mta))
 	   g))
   ([v mta]
-	 (if (:meta v)
-	   (make-vertex (merge (v :meta) mta)
-					(v :out))
-	   (make-vertex mta (:out v)))))
+	 (make-vertex (merge (v :meta) mta)
+				  (v :out))))
 
 (defn alter-adj-list-of
   "Returns the graph with the adjacency list of vertex v changed to list."
