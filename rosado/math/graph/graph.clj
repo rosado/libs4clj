@@ -2,6 +2,8 @@
 
 (ns rosado.math.graph)
 
+;; :type can be : #{:directed :undirected}
+(defstruct graph-info :type)
 (defstruct vertex :meta :out)
 (defstruct edge-info :dest :weight)
 
@@ -11,14 +13,21 @@
 (defmulti V class)
 (defmulti E class)
 
+(defmacro get-type [g] `((first ~g) :type))
+
+(defn directed? [g]
+  (= (get-type g) :directed))
+
 (defn make-vertex
   [m out]
   (struct vertex m out))
 
 (defn make-graph
-  [num-verts]
-  (let [g (vec (take (inc num-verts)(repeat nil)))]
-	(assoc g 0 {})))
+  ([num-verts]
+	 (make-graph num-verts (struct graph-info :directed)))
+  ([num-verts g-info]
+	 (let [g (vec (take (inc num-verts)(repeat nil)))]
+	   (assoc g 0 g-info))))
 
 (defn alter-vertex
   "Set the vertex v of graph g to vertex new-v."
@@ -61,15 +70,26 @@
   (when vert
 	(count (adjacent-to vert))))
 
+(defn tag?
+  ([g v key]
+	 (if-let vert (g v)
+	   (tag? vert key)))
+  ([v key]
+	 (if-let m (v :meta)
+	   (m key))))
+
 (defn tag-vertex
+  ([g v key val]
+	 (tag-vertex g v {key val}))
   ([g v mta]
 	 (if-let vert (g v)
 	   (alter-vertex g v (tag-vertex vert mta))
 	   g))
   ([v mta]
-	 (when v
-	   (make-vertex (first (merge (v :meta) mta))
-					(v :out)))))
+	 (if (:meta v)
+	   (make-vertex (merge (v :meta) mta)
+					(v :out))
+	   (make-vertex mta (:out v)))))
 
 (defn alter-adj-list-of
   "Returns the graph with the adjacency list of vertex v changed to list."
@@ -160,9 +180,9 @@
 		   [graph stack vert] (epath g vi '())
 		   path []]
 	  (cond (and (= pvert vert) (not (empty? stack)))
-			(recur (first stack)
-				   (epath graph (first stack) (rest stack))
-				   (conj path (first stack)))
+				(recur (first stack)
+					   (epath graph (first stack) (rest stack))
+					   (conj path (first stack)))
 			:else path))))
 
 (defn acyclic?
@@ -173,8 +193,41 @@
   [g]
   nil)
 
+(defn discovered? 
+  ([g vi]
+	 (tag? g vi :pre))
+  ([vert]
+	 (tag? vert :pre)))
+
+(defmulti dfsearch (fn [g [a b] pre post] (get-type  g)))
+
+(defmethod dfsearch :directed [graph [vi wi] pre-c post-c]
+  (let [pre-c (inc pre-c)
+		graph (tag-vertex graph wi :pre pre-c)]
+	(loop [{g :graph pre-c :pre post-c :post :as m} {:graph graph :pre pre-c :post post-c}
+		   verts (adjacent-to g wi)]
+	  (if-let v (first verts)
+		(cond (not (discovered? g v)) 
+			  	(recur (dfsearch g [wi v] pre-c post-c) (rest verts))
+			  :else (recur m (rest verts)))
+		{:graph (tag-vertex g wi :post (inc post-c)) :pre pre-c :post (inc post-c)}))))
+
 (defn depth-first-search
-  [g v] nil)
+  [g vi]
+  (let [verts (cons vi (filter #(not= vi %)
+							   (get-valid-indices g)))]
+	(loop [verts verts
+		   {graph :graph pre-c :pre post-c :post :as m} {:graph g :pre 0 :post 0}]
+	  (if verts 
+		(cond
+		 (not (discovered? graph
+						   (first verts))) (recur (rest verts)
+												  (dfsearch graph 
+															[(first verts) (first verts)]
+															pre-c
+															post-c))
+		 :else (recur (rest verts) m))
+		graph))))
 
 
 ;; utility functions
@@ -215,3 +268,11 @@
 ;; (to-mathematica-format g1)
 ;; (pairs->graph g3)
 (def g (pairs->graph g4b))
+
+;; multimethods
+;; (defmulti tmulti (fn [x y] (= x :a)))
+;; (defmethod tmulti true [x y] :OK)
+;; (tmulti :a 1)
+
+
+
