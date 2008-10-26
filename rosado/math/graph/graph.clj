@@ -202,28 +202,36 @@
 (defmethod dfsearch :directed [graph [vi wi] pre-c post-c]
   (let [pre-c (inc pre-c)
 		graph (tag-vertex graph wi :pre pre-c)]
-	(loop [{g :graph pre-c :pre post-c :post :as m} {:graph graph :pre pre-c :post post-c}
+	(loop [{g :graph
+			pre-c :pre
+			post-c :post :as m} {:graph graph
+								 :pre pre-c
+								 :post post-c}
 		   verts (adjacent-to g wi)]
 	  (if-let v (first verts)
 		(cond (not (discovered? g v)) 
 			  	(recur (dfsearch g [wi v] pre-c post-c) (rest verts))
 			  :else (recur m (rest verts)))
-		{:graph (tag-vertex g wi :post (inc post-c)) :pre pre-c :post (inc post-c)}))))
+		{:graph (tag-vertex g wi :post (inc post-c))
+		 :pre pre-c
+		 :post (inc post-c)}))))
 
 (defn depth-first-search
   [g vi]
   (let [verts (cons vi (filter #(not= vi %)
 							   (get-valid-indices g)))]
 	(loop [verts verts
-		   {graph :graph pre-c :pre post-c :post :as m} {:graph g :pre 0 :post 0}]
+		   {graph :graph
+			pre-c :pre
+			post-c :post :as m} {:graph g :pre 0 :post 0}]
 	  (if verts 
 		(cond
-		 (not (discovered? graph
-						   (first verts))) (recur (rest verts)
-												  (dfsearch graph 
-															[(first verts) (first verts)]
-															pre-c
-															post-c))
+		 (not (discovered? graph (first verts))) 
+		 	(recur (rest verts)
+				   (dfsearch graph 
+							 [(first verts) (first verts)]
+							 pre-c
+							 post-c))
 		 :else (recur (rest verts) m))
 		graph))))
 
@@ -267,10 +275,5 @@
 ;; (pairs->graph g3)
 (def g (pairs->graph g4b))
 
-;; multimethods
-;; (defmulti tmulti (fn [x y] (= x :a)))
-;; (defmethod tmulti true [x y] :OK)
-;; (tmulti :a 1)
-
-
-
+;; TODO:
+;; transitive closure: matrix form, adj. list form
