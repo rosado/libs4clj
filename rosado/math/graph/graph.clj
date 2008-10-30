@@ -197,24 +197,22 @@
   ([vert]
 	 (tag? vert :pre)))
 
-(defmulti dfsearch (fn [g [a b] pre post] (get-type  g)))
+(defstruct dfs-args :graph :pre :post)
 
-(defmethod dfsearch :directed [graph [vi wi] pre-c post-c]
-  (let [pre-c (inc pre-c)
-		graph (tag-vertex graph wi :pre pre-c)]
-	(loop [{g :graph
-			pre-c :pre
-			post-c :post :as m} {:graph graph
-								 :pre pre-c
-								 :post post-c}
-		   verts (adjacent-to g wi)]
+(defmulti dfsearch (fn [args [a b]] (get-type  (args :graph))))
+
+(defmethod dfsearch :directed [args [vi wi]]
+  (let [pre-c (inc (args :pre))
+		graph (tag-vertex (args :graph) wi :pre pre-c)]
+	(loop [m (-> args (assoc :graph graph) (assoc :pre pre-c))
+		   verts (adjacent-to graph wi)]
 	  (if-let v (first verts)
-		(cond (not (discovered? g v)) 
-			  	(recur (dfsearch g [wi v] pre-c post-c) (rest verts))
+		(cond (not (discovered? (m :graph) v)) 
+				  (recur (dfsearch m [wi v]) (rest verts))
 			  :else (recur m (rest verts)))
-		{:graph (tag-vertex g wi :post (inc post-c))
-		 :pre pre-c
-		 :post (inc post-c)}))))
+		{:graph (tag-vertex (m :graph) wi :post (inc (m :post)))
+		 :pre (m :pre)
+		 :post (inc (m :post))}))))
 
 (defn depth-first-search
   [g vi]
@@ -228,10 +226,8 @@
 		(cond
 		 (not (discovered? graph (first verts))) 
 		 	(recur (rest verts)
-				   (dfsearch graph 
-							 [(first verts) (first verts)]
-							 pre-c
-							 post-c))
+				   (dfsearch m 
+							 [(first verts) (first verts)]))
 		 :else (recur (rest verts) m))
 		graph))))
 
