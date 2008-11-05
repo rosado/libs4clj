@@ -238,7 +238,7 @@
   (reduce #(assoc %1 (first %2) (second %2)) {} bds))
 
 (defn- verify-fn-map [fn-map]
-  (let [required #{:pre-visited?-fn :increment-pre :mark-pre-visited}]
+  (let [required #{:tree-edge? :increment-pre :mark-pre-visited}]
    (if (= (intersection (set (keys fn-map)) required) required)
 	 fn-map
 	 (throw (Exception. "Required functions not present.")))))
@@ -287,19 +287,19 @@
 			(if-let ~v (first ~verts)
 			  (cond
 			   ~@(make-condition (assoc hooks-map :self dfs-internal)
-								 :pre-visited?-fn
+								 :tree-edge?
 								 :self
 								 m
 								 wi v
 								 verts)
 			   ~@(make-condition hooks-map
-								 :back-edge-test
+								 :back-edge?
 								 :back-edge-action
 								 m
 								 wi v
 								 verts)
 			   ~@(make-condition hooks-map
-								 :down-edge-test
+								 :down-edge?
 								 :down-edge-action
 								 m
 								 wi v
@@ -333,7 +333,7 @@
 (defmacro make-dfs [& bodies]
   (let [hooks-map (-> bodies make-fn-map verify-fn-map)
 		dfs-internal-fn (make-internal-dfs hooks-map)
-		pre-visited? (hooks-map :pre-visited?-fn)]
+		pre-visited? (hooks-map :tree-edge?)]
 	(make-dfs-main-fn pre-visited? dfs-internal-fn)))
 
 ;; utility functions
