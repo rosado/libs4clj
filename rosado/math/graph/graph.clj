@@ -8,12 +8,6 @@
 (defstruct vertex :meta :out)
 (defstruct edge-info :dest :weight)
 
-(derive clojure.lang.IPersistentMap ::compound)
-(derive java.lang.Number ::simple)
-
-(defmulti V class)
-(defmulti E class)
-
 (defmacro get-type [g] `((first ~g) :type))
 
 (defn directed? [g]
@@ -184,14 +178,6 @@
 					   (conj path (first stack)))
 			:else path))))
 
-(defn acyclic?
-  [g]
-  false)
-
-(defn topological-sort
-  [g]
-  nil)
-
 (defn discovered? 
   ([g vi]
 	 (tag? g vi :pre))
@@ -264,9 +250,18 @@
 		   (merge ~arg-map {:post ~post-c :graph ~mg})))
 	arg-map))
 
+(defn- make-hook-call [required optional]
+  (if optional
+	`(fn [amap# [v# u#]]
+	   (~required (~optional amap# [v# u#])
+					  [v# u#]))
+	required))
+
 (defn make-internal-dfs [hooks-map]
   (let [h-map (gensym "hooks-map_")
 		dfs-internal (gensym "dfs-internal_")
+		dfs-self (gensym "dfs-self_")
+		tree-edge-action (gensym "tree-edge-action_")
 		arg-map (gensym "arg-map_")
 		m (gensym "m_")
 		post-c (gensym "post-c_")
@@ -278,15 +273,17 @@
 		  mark-pre# (~h-map :mark-pre-visited)
 		  increment-pre# (~h-map :increment-pre)
 		  ~increment-post (~h-map :increment-post)
-		  ~mark-post (~h-map :mark-post-visited)]
+		  ~mark-post (~h-map :mark-post-visited)
+		  ~tree-edge-action (~h-map :tree-edge-action)]
 	  (fn ~dfs-internal [~arg-map [~vi ~wi]]
 		(let [pre-c# (increment-pre# (~arg-map :pre))
-			  graph# (mark-pre# (~arg-map :graph) ~wi pre-c#)]
+			  graph# (mark-pre# (~arg-map :graph) ~wi pre-c#)
+			  ~dfs-self ~(make-hook-call dfs-internal tree-edge-action)]
 		  (loop [~m (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
 				 ~verts (adjacent-to graph# ~wi)]
 			(if-let ~v (first ~verts)
 			  (cond
-			   ~@(make-condition (assoc hooks-map :self dfs-internal)
+			   ~@(make-condition (assoc hooks-map :self dfs-self)
 								 :tree-edge?
 								 :self
 								 m
@@ -336,6 +333,16 @@
 		pre-visited? (hooks-map :tree-edge?)]
 	(make-dfs-main-fn pre-visited? dfs-internal-fn)))
 
+;; end custom dfs
+
+(defn acyclic?
+  [g]
+  false)
+
+(defn topological-sort
+  [g]
+  nil)
+
 ;; utility functions
 
 (defn- adj-list-of->str
@@ -352,9 +359,6 @@
 		(doseq adj (adj-list-of->str (gr i))
 		  (print adj))
 		(println)))))
-
-;; tests etc
-
 
 (defn to-mathematica-format [pairs]
   (let [format-pair (fn [[x y]] (format "{%d, %d}" x y))
