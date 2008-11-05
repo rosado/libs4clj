@@ -1,6 +1,7 @@
 ;; roland sadowski [szabla gmail com]
 
-(ns rosado.math.graph)
+(ns rosado.math.graph
+  (:use clojure.set))
 
 ;; :type can be : #{:directed :undirected}
 (defstruct graph-info :type)
@@ -138,7 +139,7 @@
   [s n]
   (take (dec (count s))(drop n (cycle s))))
 
-(defn- get-valid-indices
+(defn get-valid-indices
   [g]
   (filter #(not= nil %) (range 1 (count g))))
 
@@ -231,6 +232,109 @@
 		 :else (recur (rest verts) m))
 		graph))))
 
+;; customizable depth first search
+
+(defn- make-fn-map [bds]
+  (reduce #(assoc %1 (first %2) (second %2)) {} bds))
+
+(defn- verify-fn-map [fn-map]
+  (let [required #{:pre-visited?-fn :increment-pre :mark-pre-visited}]
+   (if (= (intersection (set (keys fn-map)) required) required)
+	 fn-map
+	 (throw (Exception. "Required functions not present.")))))
+
+(defn- insert-hook [hooks-map hook-kw arg-map v u verts]
+  (if (hooks-map hook-kw)
+	(let [hook-fn_ (hooks-map hook-kw)]
+	  `(recur (~hook-fn_ ~arg-map [~v ~u]) (rest ~verts)))
+	`(recur ~arg-map (rest ~verts))))
+
+(defn- make-condition [hooks-map test-kw hook-kw arg-map v u verts]
+  (when (and (hooks-map hook-kw) (hooks-map test-kw))
+	(let [test-fn_ (hooks-map test-kw)
+		  hook-fn_ (hooks-map hook-kw)]
+	  `((~test-fn_ (~arg-map :graph) ~u) (recur (~hook-fn_ ~arg-map [~v ~u])
+												(rest ~verts))))))
+
+(defn- increment-and-mark-post [inc-post-fn mark-post-fn arg-map current-v]
+  (if inc-post-fn
+	(let [post-c (gensym "post-c_") mg (gensym "mg_")]
+		`(let [~post-c (~inc-post-fn (~arg-map :post))
+			   ~mg (~mark-post-fn (~arg-map :graph) ~current-v ~post-c)]
+		   (merge ~arg-map {:post ~post-c :graph ~mg})))
+	arg-map))
+
+(defn make-internal-dfs [hooks-map]
+  (let [h-map (gensym "hooks-map_")
+		dfs-internal (gensym "dfs-internal_")
+		arg-map (gensym "arg-map_")
+		m (gensym "m_")
+		post-c (gensym "post-c_")
+		increment-post (gensym "increment-post_")
+		mark-post (gensym "mark-post_")
+		verts (gensym "verts_")
+		[vi wi v] [(gensym "vi_") (gensym "wi_") (gensym "v_")]]
+   `(let [~h-map ~hooks-map
+		  mark-pre# (~h-map :mark-pre-visited)
+		  increment-pre# (~h-map :increment-pre)
+		  ~increment-post (~h-map :increment-post)
+		  ~mark-post (~h-map :mark-post-visited)]
+	  (fn ~dfs-internal [~arg-map [~vi ~wi]]
+		(let [pre-c# (increment-pre# (~arg-map :pre))
+			  graph# (mark-pre# (~arg-map :graph) ~wi pre-c#)]
+		  (loop [~m (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
+				 ~verts (adjacent-to graph# ~wi)]
+			(if-let ~v (first ~verts)
+			  (cond
+			   ~@(make-condition (assoc hooks-map :self dfs-internal)
+								 :pre-visited?-fn
+								 :self
+								 m
+								 wi v
+								 verts)
+			   ~@(make-condition hooks-map
+								 :back-edge-test
+								 :back-edge-action
+								 m
+								 wi v
+								 verts)
+			   ~@(make-condition hooks-map
+								 :down-edge-test
+								 :down-edge-action
+								 m
+								 wi v
+								 verts)
+			   :else ~(insert-hook hooks-map
+								   :cross-edge-action
+								   m
+								   wi v
+								   verts))
+			  ~(increment-and-mark-post increment-post mark-post m wi))))))))
+
+(defn- make-dfs-main-fn [pre-visited?-fn dfs-internal]
+  `(let [dfs-internal# ~dfs-internal
+		 not-pre-visited?# ~pre-visited?-fn]
+	 (fn [g# vi#]
+	   (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
+									  (get-valid-indices g#)))]
+		 (loop [vs# verts#
+				{graph# :graph
+				 pre-c# :pre
+				 post-c# :post :as m#} {:graph g# :pre 0 :post 0}]
+		   (if vs# 
+			 (cond
+			  (not-pre-visited?# (m# :graph) (first vs#)) 
+			  (recur (rest vs#)
+					 (dfs-internal# m# 
+									[(first vs#) (first vs#)]))
+			  :else (recur (rest vs#) m#))
+			 (m# :graph)))))))
+
+(defmacro make-dfs [& bodies]
+  (let [hooks-map (-> bodies make-fn-map verify-fn-map)
+		dfs-internal-fn (make-internal-dfs hooks-map)
+		pre-visited? (hooks-map :pre-visited?-fn)]
+	(make-dfs-main-fn pre-visited? dfs-internal-fn)))
 
 ;; utility functions
 
@@ -250,12 +354,7 @@
 		(println)))))
 
 ;; tests etc
-(def g1 [[1 1]])
-(def g2 [[1 2] [2 3]])
-(def gx2 [[:a :b] [:b :c]])
-(def g3 [[1 2] [2 3] [2 1]])
-(def g4 [[1 2] [2 3] [3 1]])
-(def g4b [[1 2] [2 3] [3 1] [2 1] [3 2] [1 3]])
+
 
 (defn to-mathematica-format [pairs]
   (let [format-pair (fn [[x y]] (format "{%d, %d}" x y))
@@ -266,10 +365,6 @@
 	(doseq s str-pairs (.append sb s))
 	(.append sb "}")
 	(.toString sb)))
-
-;; (to-mathematica-format g1)
-;; (pairs->graph g3)
-(def g (pairs->graph g4b))
 
 ;; TODO:
 ;; transitive closure: matrix form, adj. list form
