@@ -254,7 +254,7 @@
   (if optional
 	`(fn [amap# [v# u#]]
 	   (~required (~optional amap# [v# u#])
-					  [v# u#]))
+				  [v# u#]))
 	required))
 
 (defn make-internal-dfs [hooks-map]
