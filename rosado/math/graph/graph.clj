@@ -127,13 +127,9 @@
 					 g))]
 	   (reduce add-edge (cons graph pairs))))
 
-
-(defn- seq-shift<<
-  "(seq-shift<< '(1 2 3) 2) ==> (3 1)"
-  [s n]
-  (take (dec (count s))(drop n (cycle s))))
-
 (defn get-valid-indices
+  "Returns a seq of indices for which vertices are set in given
+  graph."
   [g]
   (filter #(not= nil %) (range 1 (count g))))
 
