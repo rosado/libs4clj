@@ -327,7 +327,26 @@
 			  :else (recur (rest vs#) m#))
 			 (m# :graph)))))))
 
-(defmacro make-dfs [& bodies]
+(defmacro make-dfs
+  "Creates a custom Depth First Search function with provided hooks
+  and predicates. Some of those hooks are required.
+
+  Required hooks:
+  :tree-edge? (graph u-index v-index -> boolean)
+  :increment-pre (counter -> counter)
+  :mark-pre-visited (graph vert-index data -> graph)
+  
+  Other possible hooks:
+  :tree-edge-action
+  :cross-edge-action
+  :down-edge-action
+  :mark-post-visited (graph vert-index data -> graph)
+  :back-edge?
+  :cross-edge?
+  :down-edge?
+  :increment-post (counter -> counter)"
+
+  [& bodies]
   (let [hooks-map (-> bodies make-fn-map verify-fn-map)
 		dfs-internal-fn (make-internal-dfs hooks-map)
 		pre-visited? (hooks-map :tree-edge?)]
