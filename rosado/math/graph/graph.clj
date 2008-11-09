@@ -239,8 +239,8 @@
   (when (and (hooks-map hook-kw) (hooks-map test-kw))
 	(let [test-fn_ (hooks-map test-kw)
 		  hook-fn_ (hooks-map hook-kw)]
-	  `((~test-fn_ (~arg-map :graph) ~u) (recur (~hook-fn_ ~arg-map [~v ~u])
-												(rest ~verts))))))
+	  `((~test-fn_ (~arg-map :graph) ~v ~u) (recur (~hook-fn_ ~arg-map [~v ~u])
+												   (rest ~verts))))))
 
 (defn- increment-and-mark-post [inc-post-fn mark-post-fn arg-map current-v]
   (if inc-post-fn
@@ -320,7 +320,7 @@
 				 post-c# :post :as m#} {:graph g# :pre 0 :post 0}]
 		   (if vs# 
 			 (cond
-			  (not-pre-visited?# (m# :graph) (first vs#)) 
+			  (not-pre-visited?# (m# :graph) (first vs#) (first vs#)) 
 			  (recur (rest vs#)
 					 (dfs-internal# m# 
 									[(first vs#) (first vs#)]))
