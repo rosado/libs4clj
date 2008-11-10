@@ -184,36 +184,6 @@
 
 (defmulti dfsearch (fn [args [a b]] (get-type  (args :graph))))
 
-(defmethod dfsearch :directed [args [vi wi]]
-  (let [pre-c (inc (args :pre))
-		graph (tag-vertex (args :graph) wi :pre pre-c)]
-	(loop [m (-> args (assoc :graph graph) (assoc :pre pre-c))
-		   verts (adjacent-to graph wi)]
-	  (if-let v (first verts)
-		(cond (not (discovered? (m :graph) v)) 
-				  (recur (dfsearch m [wi v]) (rest verts))
-			  :else (recur m (rest verts)))
-		{:graph (tag-vertex (m :graph) wi :post (inc (m :post)))
-		 :pre (m :pre)
-		 :post (inc (m :post))}))))
-
-(defn depth-first-search
-  [g vi]
-  (let [verts (cons vi (filter #(not= vi %)
-							   (get-valid-indices g)))]
-	(loop [verts verts
-		   {graph :graph
-			pre-c :pre
-			post-c :post :as m} {:graph g :pre 0 :post 0}]
-	  (if verts 
-		(cond
-		 (not (discovered? graph (first verts))) 
-		 	(recur (rest verts)
-				   (dfsearch m 
-							 [(first verts) (first verts)]))
-		 :else (recur (rest verts) m))
-		graph))))
-
 ;; customizable depth first search
 
 (defn- make-fn-map [bds]
