@@ -338,9 +338,21 @@
   :down-edge-action
   :mark-post-visited (graph vert-index data -> graph)
   :back-edge?
-  :cross-edge?
   :down-edge?
-  :increment-post (counter -> counter)"
+  :increment-post (counter -> counter)
+
+  (notice, that there's no :cross-edge? hook)
+
+  Hooks ending with '-edge?' alaways should obey the conctract:
+  
+     graph u-index v-index --> boolean
+
+  Hooks ending with '-action' should satisfy following contract:
+     
+     arg-map [u v] --> arg-map
+
+  where arg-map is a struct with keys :graph, :pre, :post.  
+  "
 
   [& bodies]
   (let [hooks-map (-> bodies make-fn-map verify-fn-map)
