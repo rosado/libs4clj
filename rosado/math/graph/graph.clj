@@ -188,8 +188,6 @@
 
 (defstruct dfs-args :graph :pre :post)
 
-(defmulti dfsearch (fn [args [a b]] (get-type  (args :graph))))
-
 ;; customizable depth first search
 
 (defn- make-fn-map [bds]
