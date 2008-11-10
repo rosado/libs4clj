@@ -352,6 +352,13 @@
      arg-map [u v] --> arg-map
 
   where arg-map is a struct with keys :graph, :pre, :post.  
+
+  Example:
+
+  (make-dfs
+   (:mark-pre-visited #(tag-vertex %1 %2 :pre %3))
+   (:tree-edge? #(not (discovered? %1 %3)))
+   (:increment-pre #(inc %1)))
   "
 
   [& bodies]
