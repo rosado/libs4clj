@@ -11,6 +11,7 @@
 (defmacro get-type [g] `((first ~g) :type))
 
 (defn directed? [g]
+  "Returns true if graph is a directed graph."
   (= (get-type g) :directed))
 
 (defn make-vertex
@@ -18,6 +19,7 @@
   (struct vertex m out))
 
 (defn make-graph
+  "Creates an 'empty' graph."
   ([num-verts]
 	 (make-graph num-verts (struct graph-info :directed)))
   ([num-verts g-info]
@@ -61,11 +63,14 @@
 	   (vert :out))))
 
 (defn degree
+  "Returns the out-degree of a vertex."
   [vert]
   (when vert
 	(count (adjacent-to vert))))
 
 (defn tag?
+  "Returns the data associated with vertex with given key (nil
+  otherwise)"
   ([g v key]
 	 (if-let vert (g v)
 	   (tag? vert key)))
@@ -74,6 +79,7 @@
 	   (m key))))
 
 (defn tag-vertex
+  "Associates given data with a vertex with given key."
   ([g v key val]
 	 (tag-vertex g v {key val}))
   ([g v mta]
