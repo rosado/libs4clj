@@ -204,6 +204,22 @@
 	 fn-map
 	 (throw (Exception. "Required functions not present.")))))
 
+(defn- to-cond-kw
+  "Produces terminating condition keyword from hook keyword.
+  Eg. :tree-edge-action --> :tree-edge-terminate?"
+  [kw]
+  (when (not (nil? kw)) 
+	(let [s (str kw) len (.length s)]
+	  (-> s (.substring 1 (- len 6)) (.concat "terminate?") keyword))))
+
+(defn- insert-termination-check
+  "Note: the termination check should take a seq of adjacent vertices
+  as parameter and return the list unmodified or nil (to terminate)."
+  [hooks-map cond-kw verts-symbol]
+  (if-let tcond (hooks-map cond-kw)
+	`(if (~tcond ~verts-symbol) nil (rest ~verts-symbol))
+	`(rest ~verts-symbol)))
+
 ;; uses dinamicly bound: m, wi, v, verts
 (defn- insert-hook [hooks-map hook-kw]
   (if (hooks-map hook-kw)
@@ -215,9 +231,12 @@
 (defn- make-condition [hooks-map test-kw hook-kw]
   (when (and (hooks-map hook-kw) (hooks-map test-kw))
 	(let [test-fn_ (hooks-map test-kw)
-		  hook-fn_ (hooks-map hook-kw)]
+		  hook-fn_ (hooks-map hook-kw)
+		  tcond-kw (to-cond-kw hook-kw)]
 	  `((~test-fn_ (~*m* :graph) ~*wi* ~*v*) (recur (~hook-fn_ ~*m* [~*wi* ~*v*])
-													(rest ~*verts*))))))
+													~(insert-termination-check hooks-map
+																			   tcond-kw
+																			   *verts*))))))
 
 (defn- increment-and-mark-post [inc-post-fn mark-post-fn arg-map current-v]
   (if inc-post-fn
@@ -261,9 +280,9 @@
 				  ~*verts* (adjacent-to graph# ~*wi*)]
 			 (if-let ~*v* (first ~*verts*)
 			   (cond
-				~@(make-condition (assoc hooks-map :self dfs-self)
+				~@(make-condition (assoc hooks-map :tree-edge-action dfs-self)
 								  :tree-edge?
-								  :self)
+								  :tree-edge-action)
 				~@(make-condition hooks-map
 								  :back-edge?
 								  :back-edge-action)
@@ -310,6 +329,9 @@
   :back-edge?
   :down-edge?
   :increment-post (counter -> counter)
+  :tree-edge-terminate?
+  :back-edge-terminate?
+  :down-edge-terminate?
 
   (notice, that there's no :cross-edge? hook)
 
