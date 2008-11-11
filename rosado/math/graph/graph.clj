@@ -190,6 +190,11 @@
 
 ;; customizable depth first search
 
+(def m)
+(def wi) 
+(def v)
+(def verts)
+
 (defn- make-fn-map [bds]
   (reduce #(assoc %1 (first %2) (second %2)) {} bds))
 
@@ -199,18 +204,20 @@
 	 fn-map
 	 (throw (Exception. "Required functions not present.")))))
 
-(defn- insert-hook [hooks-map hook-kw arg-map v u verts]
+;; uses dinamicly bound: m, wi, v, verts
+(defn- insert-hook [hooks-map hook-kw]
   (if (hooks-map hook-kw)
 	(let [hook-fn_ (hooks-map hook-kw)]
-	  `(recur (~hook-fn_ ~arg-map [~v ~u]) (rest ~verts)))
-	`(recur ~arg-map (rest ~verts))))
+	  `(recur (~hook-fn_ ~m [~wi ~v]) (rest ~verts)))
+	`(recur ~m (rest ~verts))))
 
-(defn- make-condition [hooks-map test-kw hook-kw arg-map v u verts]
+;; uses dinamicly bound: m, wi, v, verts
+(defn- make-condition [hooks-map test-kw hook-kw]
   (when (and (hooks-map hook-kw) (hooks-map test-kw))
 	(let [test-fn_ (hooks-map test-kw)
 		  hook-fn_ (hooks-map hook-kw)]
-	  `((~test-fn_ (~arg-map :graph) ~v ~u) (recur (~hook-fn_ ~arg-map [~v ~u])
-												   (rest ~verts))))))
+	  `((~test-fn_ (~m :graph) ~wi ~v) (recur (~hook-fn_ ~m [~wi ~v])
+											  (rest ~verts))))))
 
 (defn- increment-and-mark-post [inc-post-fn mark-post-fn arg-map current-v]
   (if inc-post-fn
@@ -239,44 +246,33 @@
 		mark-post (gensym "mark-post_")
 		verts (gensym "verts_")
 		[vi wi v] [(gensym "vi_") (gensym "wi_") (gensym "v_")]]
-   `(let [~h-map ~hooks-map
-		  mark-pre# (~h-map :mark-pre-visited)
-		  increment-pre# (~h-map :increment-pre)
-		  ~increment-post (~h-map :increment-post)
-		  ~mark-post (~h-map :mark-post-visited)
-		  ~tree-edge-action (~h-map :tree-edge-action)]
-	  (fn ~dfs-internal [~arg-map [~vi ~wi]]
-		(let [pre-c# (increment-pre# (~arg-map :pre))
-			  graph# (mark-pre# (~arg-map :graph) ~wi pre-c#)
-			  ~dfs-self ~(make-hook-call dfs-internal tree-edge-action)]
-		  (loop [~m (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
-				 ~verts (adjacent-to graph# ~wi)]
-			(if-let ~v (first ~verts)
-			  (cond
-			   ~@(make-condition (assoc hooks-map :self dfs-self)
-								 :tree-edge?
-								 :self
-								 m
-								 wi v
-								 verts)
-			   ~@(make-condition hooks-map
-								 :back-edge?
-								 :back-edge-action
-								 m
-								 wi v
-								 verts)
-			   ~@(make-condition hooks-map
-								 :down-edge?
-								 :down-edge-action
-								 m
-								 wi v
-								 verts)
-			   :else ~(insert-hook hooks-map
-								   :cross-edge-action
-								   m
-								   wi v
-								   verts))
-			  ~(increment-and-mark-post increment-post mark-post m wi))))))))
+   (binding [m m wi wi v v verts verts]
+	`(let [~h-map ~hooks-map
+		   mark-pre# (~h-map :mark-pre-visited)
+		   increment-pre# (~h-map :increment-pre)
+		   ~increment-post (~h-map :increment-post)
+		   ~mark-post (~h-map :mark-post-visited)
+		   ~tree-edge-action (~h-map :tree-edge-action)]
+	   (fn ~dfs-internal [~arg-map [~vi ~wi]]
+		 (let [pre-c# (increment-pre# (~arg-map :pre))
+			   graph# (mark-pre# (~arg-map :graph) ~wi pre-c#)
+			   ~dfs-self ~(make-hook-call dfs-internal tree-edge-action)]
+		   (loop [~m (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
+				  ~verts (adjacent-to graph# ~wi)]
+			 (if-let ~v (first ~verts)
+			   (cond
+				~@(make-condition (assoc hooks-map :self dfs-self)
+								  :tree-edge?
+								  :self)
+				~@(make-condition hooks-map
+								  :back-edge?
+								  :back-edge-action)
+				~@(make-condition hooks-map
+								  :down-edge?
+								  :down-edge-action)
+				:else ~(insert-hook hooks-map
+									:cross-edge-action))
+			   ~(increment-and-mark-post increment-post mark-post m wi)))))))))
 
 (defn- make-dfs-main-fn [pre-visited?-fn dfs-internal]
   `(let [dfs-internal# ~dfs-internal
