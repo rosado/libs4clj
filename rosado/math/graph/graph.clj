@@ -224,8 +224,13 @@
 (defn- insert-hook [hooks-map hook-kw]
   (if (hooks-map hook-kw)
 	(let [hook-fn_ (hooks-map hook-kw)]
-	  `(recur (~hook-fn_ ~*m* [~*wi* ~*v*]) (rest ~*verts*)))
-	`(recur ~*m* (rest ~*verts*))))
+	  `(recur (~hook-fn_ ~*m* [~*wi* ~*v*])
+			  ~(insert-termination-check hooks-map
+										 (to-cond-kw hook-kw)
+										 *verts*)))
+	`(recur ~*m* ~(insert-termination-check hooks-map
+											(to-cond-kw hook-kw)
+											*verts*))))
 
 ;; uses dinamicly bound: m, wi, v, verts
 (defn- make-condition [hooks-map test-kw hook-kw]
@@ -344,6 +349,10 @@
      arg-map [u v] --> arg-map
 
   where arg-map is a struct with keys :graph, :pre, :post.  
+
+  Hooks ending with '-terminate?' should satisfy the contract:
+  
+     verts-seq --> boolean
 
   Example:
 
