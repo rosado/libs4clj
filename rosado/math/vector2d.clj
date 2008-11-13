@@ -2,8 +2,8 @@
 ;; Roland Sadowski [szabla gmail com]
 ;; This code is in the public domain
 
-(clojure/ns rosado.math.vector2d
-			(:import (java.lang Math)))
+(ns rosado.math.vector2d
+  (:import (java.lang Math)))
 
 (defn norm [[x y]]
   (Math/sqrt (+ (* x x) (* y y))))

@@ -9,10 +9,10 @@
 ;; agreeing to be bound by the terms of this license.  You must not
 ;; remove this notice, or any other, from this software. 
 
-(clojure/ns rosado.io
-			(:import (java.io File FileReader FileWriter BufferedReader BufferedWriter
-							   FileInputStream FileOutputStream FileOutputStream
-							   BufferedInputStream BufferedOutputStream)))
+(ns rosado.io
+  (:import (java.io File FileReader FileWriter BufferedReader BufferedWriter
+					FileInputStream FileOutputStream FileOutputStream
+					BufferedInputStream BufferedOutputStream)))
 
 (defn reader 
   "Returns a reader or input stream (buffered).
