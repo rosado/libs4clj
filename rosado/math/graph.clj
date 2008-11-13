@@ -59,7 +59,7 @@
 	 (if v
 	   (v :out)))
   ([g v]
-	 (if-let vert (g v)
+	 (if-let [vert (g v)]
 	   (vert :out))))
 
 (defn degree
@@ -72,10 +72,10 @@
   "Returns the data associated with vertex with given key (nil
   otherwise)"
   ([g v key]
-	 (if-let vert (g v)
+	 (if-let [vert (g v)]
 	   (tag? vert key)))
   ([v key]
-	 (if-let m (v :meta)
+	 (if-let [m (v :meta)]
 	   (m key))))
 
 (defn tag-vertex
@@ -83,7 +83,7 @@
   ([g v key val]
 	 (tag-vertex g v {key val}))
   ([g v mta]
-	 (if-let vert (g v)
+	 (if-let [vert (g v)]
 	   (alter-vertex g v (tag-vertex vert mta))
 	   g))
   ([v mta]
@@ -158,27 +158,27 @@
 			   (recur (rest verts)))
 			 true))))))
 
-(defn euler-path
-  "Finds Euler path in a graph. Assumes the path exists."
-  [g vi]
-  (let [epath (fn [gr v st]
-				(loop [stack st vert v graph gr]
-				  (let [adj (adjacent-to graph vert) w (first adj)]
-					(if adj
-					  (recur (cons w stack)
-							 w
-							 (-> graph
-								 (delete-edge [vert w])
-								 (delete-edge [w vert])))
-					  [graph stack vert]))))]
-	(loop [pvert vi
-		   [graph stack vert] (epath g vi '())
-		   path []]
-	  (cond (and (= pvert vert) (not (empty? stack)))
-				(recur (first stack)
-					   (epath graph (first stack) (rest stack))
-					   (conj path (first stack)))
-			:else path))))
+;; (defn euler-path
+;;   "Finds Euler path in a graph. Assumes the path exists."
+;;   [g vi]
+;;   (let [epath (fn [gr v st]
+;; 				(loop [stack st vert v graph gr]
+;; 				  (let [adj (adjacent-to graph vert) w (first adj)]
+;; 					(if adj
+;; 					  (recur (cons w stack)
+;; 							 w
+;; 							 (-> graph
+;; 								 (delete-edge [vert w])
+;; 								 (delete-edge [w vert])))
+;; 					  [graph stack vert]))))]
+;; 	(loop [pvert vi
+;; 		   [graph stack vert] (epath g vi '())
+;; 		   path []]
+;; 	  (cond (and (= pvert vert) (not (empty? stack)))
+;; 				(recur (first stack)
+;; 					   (epath graph (first stack) (rest stack))
+;; 					   (conj path (first stack)))
+;; 			:else path))))
 
 (defn discovered? 
   ([g vi]
@@ -216,7 +216,7 @@
   "Note: the termination check should take a seq of adjacent vertices
   as parameter and return the list unmodified or nil (to terminate)."
   [hooks-map cond-kw verts-symbol]
-  (if-let tcond (hooks-map cond-kw)
+  (if-let [tcond (hooks-map cond-kw)]
 	`(if (~tcond ~verts-symbol) nil (rest ~verts-symbol))
 	`(rest ~verts-symbol)))
 
@@ -283,7 +283,7 @@
 			   ~dfs-self ~(make-hook-call dfs-internal tree-edge-action)]
 		   (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
 				  ~*verts* (adjacent-to graph# ~*wi*)]
-			 (if-let ~*v* (first ~*verts*)
+			 (if-let [~*v* (first ~*verts*)]
 			   (cond
 				~@(make-condition (assoc hooks-map :tree-edge-action dfs-self)
 								  :tree-edge?
@@ -382,16 +382,16 @@
 
 (defn- adj-list-of->str
   [vert]
-  (if-let adj (adjacent-to vert)
+  (if-let [adj (adjacent-to vert)]
 	(map #(format "%2d" %) adj)))
 
 (defn print-graph
   [gr]
   (let []
-	(doseq i (range 1 (count gr))
+	(doseq [i (range 1 (count gr))]
 	  (when (gr i)
 		(print (format "%3d: " i))
-		(doseq adj (adj-list-of->str (gr i))
+		(doseq [adj (adj-list-of->str (gr i))]
 		  (print adj))
 		(println)))))
 
@@ -401,7 +401,7 @@
 									   (repeat ", ")))
 		sb (StringBuilder.)]
 	(.append sb "{")
-	(doseq s str-pairs (.append sb s))
+	(doseq [s str-pairs] (.append sb s))
 	(.append sb "}")
 	(.toString sb)))
 
