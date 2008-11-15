@@ -354,6 +354,10 @@
   
      verts-seq --> boolean
 
+  The default counters are integers stored in the arg-map. The
+  increment pre/post is performed before marking the
+  vertices (therefore the default counters start with 1).
+  
   Example:
 
   (make-dfs
