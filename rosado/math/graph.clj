@@ -252,11 +252,11 @@
 	arg-map))
 
 (defn- make-hook-call [required optional]
-  (if optional
-	`(fn [amap# [v# u#]]
+  `(fn [amap# [v# u#]]
+	 (if ~optional
 	   (~required (~optional amap# [v# u#])
-				  [v# u#]))
-	required))
+				  [v# u#])
+	   (~required amap# [v# u#]))))
 
 (defn make-internal-dfs [hooks-map]
   (let [h-map (gensym "hooks-map_")
