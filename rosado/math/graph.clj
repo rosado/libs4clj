@@ -246,35 +246,6 @@
 	`(~a ~b)
 	nil))
 
-(defn- to-cond-kw
-  "Produces terminating condition keyword from hook keyword.
-  Eg. :tree-edge-action --> :tree-edge-terminate?"
-  [kw]
-  (when (not (nil? kw)) 
-	(let [s (str kw) len (.length s)]
-	  (-> s (.substring 1 (- len 6)) (.concat "terminate?") keyword))))
-
-(defn- insert-termination-check
-  "Note: the termination check should take a seq of adjacent vertices
-  as parameter and return the list unmodified or nil (to terminate)."
-  [hooks-map cond-kw verts-symbol]
-  (if-let [tcond (hooks-map cond-kw)]
-	`(if (~tcond ~verts-symbol) nil (rest ~verts-symbol))
-	`(rest ~verts-symbol)))
-
-;; uses dinamicly bound: m, wi, v, verts
-(defn- insert-hook [hooks-map hook-kw]
-  (if (hooks-map hook-kw)
-	(let [hook-fn_ (hooks-map hook-kw)]
-	  `(recur (~hook-fn_ ~*m* [~*wi* ~*v*])
-			  ~(insert-termination-check hooks-map
-										 (to-cond-kw hook-kw)
-										 *verts*)))
-	`(recur ~*m* ~(insert-termination-check hooks-map
-											(to-cond-kw hook-kw)
-											*verts*))))
-
-
 (defn insert-recur-form
   ([]
 	 `(recur ~*m* (rest ~*verts*)))
@@ -304,40 +275,12 @@
 ;; 	`((~t? (~*m* :graph) ~*wi* ~*v*) (recur (~hook-symb ~*m* [~*wi* ~*v*])
 ;; 											(rest *verts*)))))
 
-;; uses dinamicly bound: m, wi, v, verts
-(defn- make-condition [hooks-map test-kw hook-kw]
-  (when (and (hooks-map hook-kw) (hooks-map test-kw))
-	(let [test-fn_ (hooks-map test-kw)
-		  hook-fn_ (hooks-map hook-kw)
-		  tcond-kw (to-cond-kw hook-kw)]
-	  `((~test-fn_ (~*m* :graph) ~*wi* ~*v*) (recur (~hook-fn_ ~*m* [~*wi* ~*v*])
-													~(insert-termination-check hooks-map
-																			   tcond-kw
-																			   *verts*))))))
-
-
-(defn- increment-and-mark-post-new [arg-map]
+(defn- increment-and-mark-post [arg-map]
   (if *increment-post-fn*
 	`(let [post-c# (~*increment-post* (~arg-map :post))
 		   mg# (~*mark-post* (~arg-map :graph) ~*v* post-c# )]
 	   (merge ~arg-map {:post post-c# :graph mg#}))
 	*m*))
-
-(defn- increment-and-mark-post [inc-post-fn mark-post-fn arg-map current-v]
-  (if inc-post-fn
-	(let [post-c (gensym "post-c_") mg (gensym "mg_")]
-		`(let [~post-c (~inc-post-fn (~arg-map :post))
-			   ~mg (~mark-post-fn (~arg-map :graph) ~current-v ~post-c)]
-		   (merge ~arg-map {:post ~post-c :graph ~mg})))
-	arg-map))
-
-(defn- make-hook-call [required optional]
-  `(fn [amap# [v# u#]]
-	 (if ~optional
-	   (~required (~optional amap# [v# u#])
-				  [v# u#])
-	   (~required amap# [v# u#]))))
-
 
 (defn make-dfs-internal []
   (let [arg-map (gensym "arg-map__")]
@@ -350,48 +293,7 @@
 				~*verts* (adjacent-to graph# ~*wi*)]
 		   (if-let [~*v* (first ~*verts*)]
 			 (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
-			 ~(increment-and-mark-post-new arg-map))))))))
-
-
-(defn make-internal-dfs-old [hooks-map]
-  (let [h-map (gensym "hooks-map_")
-		dfs-internal (gensym "dfs-internal_")
-		dfs-self (gensym "dfs-self_")
-		tree-edge-action (gensym "tree-edge-action_")
-		arg-map (gensym "arg-map_")
-		m (gensym "m_")
-		post-c (gensym "post-c_")
-		increment-post (gensym "increment-post_")
-		mark-post (gensym "mark-post_")
-		verts (gensym "verts_")
-		[vi wi v] [(gensym "vi_") (gensym "wi_") (gensym "v_")]]
-   (binding [*m* m *wi* wi *v* v *verts* verts]
-	`(let [~h-map ~hooks-map
-		   mark-pre# (~h-map :mark-pre-visited)
-		   increment-pre# (~h-map :increment-pre)
-		   ~increment-post (~h-map :increment-post)
-		   ~mark-post (~h-map :mark-post-visited)
-		   ~tree-edge-action (~h-map :tree-edge-action)]
-	   (fn ~dfs-internal [~arg-map [~vi ~*wi*]]
-		 (let [pre-c# (increment-pre# (~arg-map :pre))
-			   graph# (mark-pre# (~arg-map :graph) ~*wi* pre-c#)
-			   ~dfs-self ~(make-hook-call dfs-internal tree-edge-action)]
-		   (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
-				  ~*verts* (adjacent-to graph# ~*wi*)]
-			 (if-let [~*v* (first ~*verts*)]
-			   (cond
-				~@(make-condition (assoc hooks-map :tree-edge-action dfs-self)
-								  :tree-edge?
-								  :tree-edge-action)
-				~@(make-condition hooks-map
-								  :back-edge?
-								  :back-edge-action)
-				~@(make-condition hooks-map
-								  :down-edge?
-								  :down-edge-action)
-				:else ~(insert-hook hooks-map
-									:cross-edge-action))
-			   ~(increment-and-mark-post increment-post mark-post *m* *wi*)))))))))
+			 ~(increment-and-mark-post arg-map))))))))
 
 (defn- insert-fn-definitions []
   (mapcat make-let-pair (seq [[*tree-eg?* *tree-eg?-fn*]
@@ -512,7 +414,6 @@
 			  *v* (gensym "v__")
 			  *verts* (gensym "verts__")
 			  *dfs-internal* (gensym "dfs-internal__")]
-	  (do (println "make-dfs: " *m*))
 	  (make-dfs-main (make-dfs-internal)))))
 
 ;; end custom dfs
@@ -520,10 +421,6 @@
 (defn acyclic?
   [g]
   false)
-
-(defn topological-sort
-  [g]
-  nil)
 
 ;; utility functions
 
