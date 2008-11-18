@@ -190,9 +190,6 @@
 
 ;; customizable depth first search
 
-(def *hooks-map*)
-(def hooks-map)
-(def *hooks-map-sym*)
 (def *dfs-internal*)
 (def *m*)								; holds the arg-map in main loop in internal-dfs
 (def *wi*) 								; index of 
@@ -256,6 +253,11 @@
 							  [~*wi* ~*v*])
 			 (rest ~*verts*))))
 
+(defn- make-cond-pair-helper [t? hook-symb hook-fn]
+  (when hook-fn
+	`((~t? (~*m* :graph) ~*wi* ~*v*) (recur (~hook-symb ~*m* [~*wi* ~*v*])
+											(rest *verts*)))))
+
 (defmulti make-cond-pair identity :default)
 
 (defmethod make-cond-pair :tree-edge [kw]
@@ -269,18 +271,18 @@
 	`(:else ~(insert-recur-form *cross-eg-hook*))
 	`(:else ~(insert-recur-form))))
 
-;; 
-;; (defn- make-cond-pair [t? hook-symb hook-fn]
-;;   (when hook-fn
-;; 	`((~t? (~*m* :graph) ~*wi* ~*v*) (recur (~hook-symb ~*m* [~*wi* ~*v*])
-;; 											(rest *verts*)))))
+(defmethod make-cond-pair :down-edge [kw]
+  (make-cond-pair-helper *down-eg?* *down-eg-hook* *down-eg-hook-fn*))
+
+(defmethod make-cond-pair :back-edge [kw]
+  (make-cond-pair-helper *back-eg?* *back-eg-hook* *back-eg-hook-fn*))
 
 (defn- increment-and-mark-post [arg-map]
   (if *increment-post-fn*
 	`(let [post-c# (~*increment-post* (~arg-map :post))
 		   mg# (~*mark-post* (~arg-map :graph) ~*v* post-c# )]
 	   (merge ~arg-map {:post post-c# :graph mg#}))
-	*m*))
+	arg-map))
 
 (defn make-dfs-internal []
   (let [arg-map (gensym "arg-map__")]
@@ -311,7 +313,6 @@
 							  [*increment-post* *increment-post-fn*]])))
 
 (defn- make-dfs-main [dfs-internal]
-  (println "dfs-internal: " *tree-eg?*)
   `(let [;~*tree-eg?* ~*tree-eg?-fn*
 		 ~@(insert-fn-definitions)
 		 dfs-internal# ~dfs-internal]
@@ -341,16 +342,13 @@
   :mark-pre-visited (graph vert-index data -> graph)
   
   Other possible hooks:
-  :tree-edge-action
-  :cross-edge-action
-  :down-edge-action
+  :tree-edge-hook
+  :cross-edge-hook
+  :down-edge-hook
   :mark-post-visited (graph vert-index data -> graph)
   :back-edge?
   :down-edge?
   :increment-post (counter -> counter)
-  :tree-edge-terminate?
-  :back-edge-terminate?
-  :down-edge-terminate?
 
   (notice, that there's no :cross-edge? hook)
 
@@ -358,15 +356,11 @@
   
      graph u-index v-index --> boolean
 
-  Hooks ending with '-action' should satisfy following contract:
+  Hooks ending with '-hook' should satisfy following contract:
      
      arg-map [u v] --> arg-map
 
   where arg-map is a struct with keys :graph, :pre, :post.  
-
-  Hooks ending with '-terminate?' should satisfy the contract:
-  
-     verts-seq --> boolean
 
   The default counters are integers stored in the arg-map. The
   increment pre/post is performed before marking the
@@ -381,10 +375,7 @@
   "
   [& bodies]
   (let [hooks-map (-> bodies make-fn-map verify-fn-map)]
-	(binding [*hooks-map-sym* (gensym "hooks-map-sym__")
-			  *hooks-map* (-> bodies make-fn-map verify-fn-map)
-			  hooks-map (-> bodies make-fn-map verify-fn-map)
-			  *tree-eg?* (gensym "tree-eg?__")
+	(binding [*tree-eg?* (gensym "tree-eg?__")
 			  *back-eg?* (gensym "back-eg?__")
 			  *down-eg?* (gensym "down-eg?__")
 			  *tree-eg?-fn* (:tree-edge? hooks-map)
