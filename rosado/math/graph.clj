@@ -278,24 +278,24 @@
   (make-cond-pair-helper *back-eg?* *back-eg-hook* *back-eg-hook-fn*))
 
 (defn- increment-and-mark-post [arg-map]
-  (if *increment-post-fn*
+  (if *mark-post-fn*
 	`(let [post-c# (~*increment-post* (~arg-map :post))
-		   mg# (~*mark-post* (~arg-map :graph) ~*v* post-c# )]
+		   mg# (~*mark-post* (~arg-map :graph) ~*wi* post-c#)]
 	   (merge ~arg-map {:post post-c# :graph mg#}))
 	arg-map))
 
 (defn make-dfs-internal []
   (let [arg-map (gensym "arg-map__")]
 	  `(let [~*increment-pre* ~*increment-pre-fn*
-		 ~*mark-pre* ~*mark-pre-fn*]
-	 (fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
-	   (let [pre-c# (~*increment-pre* (~arg-map :pre))
-			 graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)]
-		 (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
-				~*verts* (adjacent-to graph# ~*wi*)]
-		   (if-let [~*v* (first ~*verts*)]
-			 (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
-			 ~(increment-and-mark-post arg-map))))))))
+			 ~*mark-pre* ~*mark-pre-fn*]
+		 (fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
+		   (let [pre-c# (~*increment-pre* (~arg-map :pre))
+				 graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)]
+			 (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
+					~*verts* (adjacent-to graph# ~*wi*)]
+			   (if-let [~*v* (first ~*verts*)]
+				   (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
+			       ~(increment-and-mark-post *m*))))))))
 
 (defn- insert-fn-definitions []
   (mapcat make-let-pair (seq [[*tree-eg?* *tree-eg?-fn*]
@@ -313,8 +313,7 @@
 							  [*increment-post* *increment-post-fn*]])))
 
 (defn- make-dfs-main [dfs-internal]
-  `(let [;~*tree-eg?* ~*tree-eg?-fn*
-		 ~@(insert-fn-definitions)
+  `(let [~@(insert-fn-definitions)
 		 dfs-internal# ~dfs-internal]
 	 (fn [g# vi#]
 	   (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
@@ -402,7 +401,7 @@
 			  *m* (gensym "m__")
 			  *vi* (gensym "vi__")
 			  *wi* (gensym "wi__")
-			  *v* (gensym "v__")
+			  *v* (gensym "vvvv__")
 			  *verts* (gensym "verts__")
 			  *dfs-internal* (gensym "dfs-internal__")]
 	  (make-dfs-main (make-dfs-internal)))))
