@@ -372,6 +372,7 @@
   :down-edge?
   :increment-post (counter -> counter)
   :increment-component (counter -> counter)
+  :mark-component (graph vert-index counter -> graph)
 
   (notice, that there's no :cross-edge? hook)
 
