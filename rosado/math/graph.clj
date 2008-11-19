@@ -249,18 +249,18 @@
 
 (defn- component-key-val-pair [m]
   (if *increment-component-fn*
-	`(assoc ~m :component 0)
+	`(assoc ~m :components 0)
 	m))
 
 (defn- mark-component [arg-map v]
   (if *mark-component-fn*
-	`(assoc ~arg-map :graph (~*mark-component* (:graph ~arg-map) ~v (:component ~arg-map)))
+	`(assoc ~arg-map :graph (~*mark-component* (:graph ~arg-map) ~v (:components ~arg-map)))
 	arg-map))
 
 (defn- increment-and-mark-component [arg-map v]
   (if *increment-component-fn*
-	`(let [cnt# (~*increment-component* (:component ~arg-map))
-		   ~arg-map (merge ~arg-map {:component cnt#})]
+	`(let [cnt# (~*increment-component* (:components ~arg-map))
+		   ~arg-map (merge ~arg-map {:components cnt#})]
 	   ~(mark-component arg-map v))
 	arg-map))
 
@@ -306,16 +306,15 @@
 	arg-map))
 
 (defn make-dfs-internal []
-  (let [arg-map (gensym "arg-map__") graph (gensym "graph-(int-dfs)__")]
+  (let [arg-map (gensym "arg-map__")]
 	  `(let [~*increment-pre* ~*increment-pre-fn* ;; TODO: remove this, it's already bound, level up
 			 ~*mark-pre* ~*mark-pre-fn*]
 		 (fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
 		   (let [pre-c# (~*increment-pre* (~arg-map :pre))
-				 ~graph (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)
-				 ~arg-map (assoc ~arg-map :graph ~graph)
-				 ~arg-map ~(mark-component arg-map *wi*)]
-			 (loop [~*m* (-> ~arg-map (assoc :graph ~graph) (assoc :pre pre-c#))
-					~*verts* (adjacent-to ~graph ~*wi*)]
+				 graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)
+				 ~arg-map (assoc ~(mark-component arg-map *wi*) :graph graph#)]
+			 (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
+					~*verts* (adjacent-to graph# ~*wi*)]
 			   (if-let [~*v* (first ~*verts*)]
 				   (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
 			       ~(increment-and-mark-post *m*))))))))
@@ -355,7 +354,7 @@
 					   (dfs-internal# ~(increment-and-mark-component m v) 
 									  [(first ~vs) (first ~vs)]))
 				:else (recur (rest ~vs) ~m))
-			   (with-meta (~m :graph) {:components (:component ~m)}))))))))
+			   (with-meta (~m :graph) {:components (:components ~m)}))))))))
 
 (defmacro make-dfs
   "Creates a custom Depth First Search function with provided hooks
