@@ -205,6 +205,8 @@
 (def *increment-pre-fn*)
 (def *increment-post*)
 (def *increment-post-fn*)
+(def *increment-component*)
+(def *increment-component-fn*)
 
 (def *tree-eg?*)
 (def *back-eg?*)
@@ -242,6 +244,16 @@
   (if b
 	`(~a ~b)
 	nil))
+
+(defn- component-key-val-pair [m]
+  (if *increment-component-fn*
+	`(assoc ~m :component 0)
+	m))
+
+(defn- increment-and-mark-component [arg-map]
+  (if *increment-component-fn*
+	`(merge ~arg-map {:component (~*increment-component* (:component ~arg-map))})
+	arg-map))
 
 (defn insert-recur-form
   ([]
@@ -310,26 +322,28 @@
 							  [*mark-pre* *mark-pre-fn*]
 							  [*mark-post* *mark-post-fn*]
 							  [*increment-pre* *increment-pre-fn*]
-							  [*increment-post* *increment-post-fn*]])))
+							  [*increment-post* *increment-post-fn*]
+							  [*increment-component* *increment-component-fn*]])))
 
 (defn- make-dfs-main [dfs-internal]
-  `(let [~@(insert-fn-definitions)
-		 dfs-internal# ~dfs-internal]
-	 (fn [g# vi#]
-	   (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
-									  (get-valid-indices g#)))]
-		 (loop [vs# verts#
-				{graph# :graph
-				 pre-c# :pre
-				 post-c# :post :as m#} {:graph g# :pre 0 :post 0}]
-		   (if vs# 
-			 (cond
-			  (~*tree-eg?* (m# :graph) (first vs#) (first vs#)) 
-			  (recur (rest vs#)
-					 (dfs-internal# m# 
-									[(first vs#) (first vs#)]))
-			  :else (recur (rest vs#) m#))
-			 (m# :graph)))))))
+  (let [m (gensym "m__") g (gensym "g__")]
+	`(let [~@(insert-fn-definitions)
+		   dfs-internal# ~dfs-internal]
+	   (fn [~g vi#]
+		 (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
+										(get-valid-indices ~g)))]
+		   (loop [vs# verts#
+				  {graph# :graph
+				   pre-c# :pre
+				   post-c# :post :as ~m} ~(component-key-val-pair {:graph g :pre 0 :post 0})]
+			 (if vs# 
+			   (cond
+				(~*tree-eg?* (~m :graph) (first vs#) (first vs#)) 
+				(recur (rest vs#)
+					   (dfs-internal# ~(increment-and-mark-component m) 
+									  [(first vs#) (first vs#)]))
+				:else (recur (rest vs#) ~m))
+			   (~m :graph))))))))
 
 (defmacro make-dfs
   "Creates a custom Depth First Search function with provided hooks
@@ -348,6 +362,7 @@
   :back-edge?
   :down-edge?
   :increment-post (counter -> counter)
+  :increment-component (counter -> counter)
 
   (notice, that there's no :cross-edge? hook)
 
@@ -397,6 +412,8 @@
 			  *increment-pre-fn* (:increment-pre hooks-map)
 			  *increment-post* (gensym "increment-post__")
 			  *increment-post-fn* (:increment-post hooks-map)
+			  *increment-component* (gensym "increment-comp__")
+			  *increment-component-fn* (:increment-component hooks-map)
 			  ;; other stuff
 			  *m* (gensym "m__")
 			  *vi* (gensym "vi__")
