@@ -307,17 +307,15 @@
 
 (defn make-dfs-internal []
   (let [arg-map (gensym "arg-map__")]
-	  `(let [~*increment-pre* ~*increment-pre-fn* ;; TODO: remove this, it's already bound, level up
-			 ~*mark-pre* ~*mark-pre-fn*]
-		 (fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
-		   (let [pre-c# (~*increment-pre* (~arg-map :pre))
-				 graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)
-				 ~arg-map (assoc ~(mark-component arg-map *wi*) :graph graph#)]
-			 (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
-					~*verts* (adjacent-to graph# ~*wi*)]
-			   (if-let [~*v* (first ~*verts*)]
-				   (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
-			       ~(increment-and-mark-post *m*))))))))
+	  `(fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
+		 (let [pre-c# (~*increment-pre* (~arg-map :pre))
+			   graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)
+			   ~arg-map (assoc ~(mark-component arg-map *wi*) :graph graph#)]
+		   (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
+				  ~*verts* (adjacent-to graph# ~*wi*)]
+			 (if-let [~*v* (first ~*verts*)]
+				 (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
+			   ~(increment-and-mark-post *m*)))))))
 
 (defn- insert-fn-definitions []
   (mapcat make-let-pair (seq [[*tree-eg?* *tree-eg?-fn*]
