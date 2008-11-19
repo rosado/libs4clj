@@ -207,6 +207,8 @@
 (def *increment-post-fn*)
 (def *increment-component*)
 (def *increment-component-fn*)
+(def *mark-component*)
+(def *mark-component-fn*)
 
 (def *tree-eg?*)
 (def *back-eg?*)
@@ -250,9 +252,16 @@
 	`(assoc ~m :component 0)
 	m))
 
-(defn- increment-and-mark-component [arg-map]
+(defn- mark-component [arg-map v]
+  (if *mark-component-fn*
+	`(assoc ~arg-map :graph (~*mark-component* (:graph ~arg-map) ~v (:component ~arg-map)))
+	arg-map))
+
+(defn- increment-and-mark-component [arg-map v]
   (if *increment-component-fn*
-	`(merge ~arg-map {:component (~*increment-component* (:component ~arg-map))})
+	`(let [cnt# (~*increment-component* (:component ~arg-map))
+		   ~arg-map (merge ~arg-map {:component cnt#})]
+	   ~(mark-component arg-map v))
 	arg-map))
 
 (defn insert-recur-form
@@ -297,14 +306,16 @@
 	arg-map))
 
 (defn make-dfs-internal []
-  (let [arg-map (gensym "arg-map__")]
-	  `(let [~*increment-pre* ~*increment-pre-fn*
+  (let [arg-map (gensym "arg-map__") graph (gensym "graph-(int-dfs)__")]
+	  `(let [~*increment-pre* ~*increment-pre-fn* ;; TODO: remove this, it's already bound, level up
 			 ~*mark-pre* ~*mark-pre-fn*]
 		 (fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
 		   (let [pre-c# (~*increment-pre* (~arg-map :pre))
-				 graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)]
-			 (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
-					~*verts* (adjacent-to graph# ~*wi*)]
+				 ~graph (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)
+				 ~arg-map (assoc ~arg-map :graph ~graph)
+				 ~arg-map ~(mark-component arg-map *wi*)]
+			 (loop [~*m* (-> ~arg-map (assoc :graph ~graph) (assoc :pre pre-c#))
+					~*verts* (adjacent-to ~graph ~*wi*)]
 			   (if-let [~*v* (first ~*verts*)]
 				   (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
 			       ~(increment-and-mark-post *m*))))))))
@@ -323,27 +334,28 @@
 							  [*mark-post* *mark-post-fn*]
 							  [*increment-pre* *increment-pre-fn*]
 							  [*increment-post* *increment-post-fn*]
-							  [*increment-component* *increment-component-fn*]])))
+							  [*increment-component* *increment-component-fn*]
+							  [*mark-component* *mark-component-fn*]])))
 
 (defn- make-dfs-main [dfs-internal]
-  (let [m (gensym "m__") g (gensym "g__")]
+  (let [m (gensym "m__") g (gensym "g__") vs (gensym "vs__") v (gensym "v(main)__")]
 	`(let [~@(insert-fn-definitions)
 		   dfs-internal# ~dfs-internal]
 	   (fn [~g vi#]
 		 (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
 										(get-valid-indices ~g)))]
-		   (loop [vs# verts#
+		   (loop [~vs verts#
 				  {graph# :graph
 				   pre-c# :pre
 				   post-c# :post :as ~m} ~(component-key-val-pair {:graph g :pre 0 :post 0})]
-			 (if vs# 
+			 (if-let [~v (first ~vs)]
 			   (cond
-				(~*tree-eg?* (~m :graph) (first vs#) (first vs#)) 
-				(recur (rest vs#)
-					   (dfs-internal# ~(increment-and-mark-component m) 
-									  [(first vs#) (first vs#)]))
-				:else (recur (rest vs#) ~m))
-			   (~m :graph))))))))
+				(~*tree-eg?* (~m :graph) (first ~vs) (first ~vs)) 
+				(recur (rest ~vs)
+					   (dfs-internal# ~(increment-and-mark-component m v) 
+									  [(first ~vs) (first ~vs)]))
+				:else (recur (rest ~vs) ~m))
+			   (with-meta (~m :graph) {:components (:component ~m)}))))))))
 
 (defmacro make-dfs
   "Creates a custom Depth First Search function with provided hooks
@@ -414,6 +426,8 @@
 			  *increment-post-fn* (:increment-post hooks-map)
 			  *increment-component* (gensym "increment-comp__")
 			  *increment-component-fn* (:increment-component hooks-map)
+			  *mark-component* (gensym "mark-component__")
+			  *mark-component-fn* (:mark-component hooks-map)
 			  ;; other stuff
 			  *m* (gensym "m__")
 			  *vi* (gensym "vi__")
