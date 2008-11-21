@@ -54,3 +54,21 @@
 	  (.write a-writer (first lns))
 	  (.newLine a-writer)
 	  (recur (rest lns)))))
+
+;; compares mtime of files
+;; no errors/exceptions are thrown
+(defmulti newer? (fn [file other] (class file)))
+
+(defmethod newer? java.io.File
+  [file other]
+  (> (.lastModified file) (.lastModified other)))
+
+(defmethod newer? java.lang.String
+  [file other]
+  (> (.lastModified (File. file)) (.lastModified (File. other))))
+
+(defmulti exists? class)
+
+(defmethod exists? java.io.File [f] (.exists f))
+(defmethod exists? String [fname] (.exists (File. fname)))
+
