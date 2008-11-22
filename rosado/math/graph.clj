@@ -310,8 +310,9 @@
 	  `(fn ~*dfs-internal* [~arg-map [~*vi* ~*wi*]]
 		 (let [pre-c# (~*increment-pre* (~arg-map :pre))
 			   graph# (~*mark-pre* (~arg-map :graph) ~*wi* pre-c#)
-			   ~arg-map (assoc ~(mark-component arg-map *wi*) :graph graph#)]
-		   (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
+			   ~arg-map (assoc ~arg-map :graph graph#)
+			   ~arg-map ~(mark-component arg-map *wi*)]
+		   (loop [~*m* (assoc ~arg-map :pre pre-c#)
 				  ~*verts* (adjacent-to graph# ~*wi*)]
 			 (if-let [~*v* (first ~*verts*)]
 				 (cond ~@(doall (mapcat make-cond-pair [:tree-edge :back-edge :down-edge :cross-edge])))
