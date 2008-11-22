@@ -314,7 +314,7 @@
 		   (loop [~*m* (-> ~arg-map (assoc :graph graph#) (assoc :pre pre-c#))
 				  ~*verts* (adjacent-to graph# ~*wi*)]
 			 (if-let [~*v* (first ~*verts*)]
-				 (cond ~@(mapcat make-cond-pair [:tree-edge :cross-edge]))
+				 (cond ~@(doall (mapcat make-cond-pair [:tree-edge :back-edge :down-edge :cross-edge])))
 			   ~(increment-and-mark-post *m*)))))))
 
 (defn- insert-fn-definitions []
