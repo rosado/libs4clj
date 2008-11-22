@@ -34,7 +34,7 @@
   [kw val]
   (set! p-info (assoc p-info kw val)))
 
-(defn run-command [cmd-str]
+(defn run-command [#^String cmd-str]
   (let [params (java.util.ArrayList.)
 		pb (ProcessBuilder. (Arrays/asList (.split cmd-str " ")))]
 	(.redirectErrorStream pb true)
