@@ -46,8 +46,10 @@
 
 ;; counting components
 
+
 (def two-comp-g (g/pairs->graph [[1 2] [3 4]]))
-(def one-comp-g (g/pairs->graph [[1 2] [2 3]]))
+(def one-comp-g1 (g/pairs->graph [[1 2] [2 3]]))
+(def one-comp-g2 (g/pairs->graph [[1 2]]))
 
 (def my-dfs-component-count
 	 (g/make-dfs
@@ -61,8 +63,11 @@
 						 ;(println "mark-component: " [g v cn])
 						 (g/tag-vertex g v :compo cn)))))
 
+(def result1 (my-dfs-component-count one-comp-g2 1))
+
 (deftest counting-components
   (is (= (meta (my-dfs-component-count two-comp-g 1)) {:components 2}))
-  (is (= (meta (my-dfs-component-count one-comp-g 1)) {:components 1})))
+  (is (= (meta (my-dfs-component-count one-comp-g1 1)) {:components 1}))
+  (is (= [(g/tag? result1 1 :compo) (g/tag? result1 2 :compo)] [1 1])))
 
 (run-tests)
