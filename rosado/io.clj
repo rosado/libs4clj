@@ -68,7 +68,32 @@
   (> (.lastModified (File. file)) (.lastModified (File. other))))
 
 (defmulti exists? class)
-
 (defmethod exists? java.io.File [f] (.exists f))
 (defmethod exists? String [fname] (.exists (File. fname)))
 
+(defmulti directory? class)
+(defmethod directory? java.io.File [f] (.isDirectory f))
+(defmethod directory? String [fname] (.isDirectory (File. fname)))
+
+(defmulti list-dir class)
+(defmethod list-dir java.io.File [f] (.listFiles f))
+(defmethod list-dir String [fname] (.listFiles (File. fname)))
+
+
+(defmulti #^{:doc "Deletes a file or directory (with its contents)."}
+  delete class)
+
+(defn- delete-dir [#^java.io.File dir-name]
+  (doseq [f (list-dir dir-name)]
+	  (cond (not (directory? f)) (delete f)
+			:else (delete-dir f)))
+  (.delete dir-name))
+
+(defmethod delete java.lang.String [#^java.lang.String fname]
+  (delete (File. fname)))
+
+(defmethod delete java.io.File [#^java.io.File fname]
+  (if (exists? fname)
+	(if (directory? fname)
+	  (delete-dir fname)
+	  (.delete fname))))
