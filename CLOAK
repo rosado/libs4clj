@@ -1,0 +1,22 @@
+(ns rosado
+  (:use (rosado.cloak main actions)))
+	
+(task :default
+	  (when-not (exists? "classes")
+		(throw (Exception. "classes directory must already exist")))
+	  (binding [*compile-path* "classes"]
+		(compile 'rosado.math.graph)
+		(compile 'rosado.math.vector2d)
+		(compile 'rosado.utils)
+		(compile 'rosado.io)))
+
+(task :clean
+	  (when (exists? "classes")
+		(sh "rm -r classes")))
+
+(task :jar ["bin/rosado.jar"])
+
+(file "bin/rosado.jar" ["classes"]
+	  (when-not (exists? "bin")
+		(mkdir "bin")
+		(sh "jar cf bin/rosado.jar -C classes rosado")))
