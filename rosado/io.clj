@@ -57,7 +57,9 @@
 
 ;; compares mtime of files
 ;; no errors/exceptions are thrown
-(defmulti newer? (fn [file other] (class file)))
+(defmulti #^{:doc "Returns true if file (first arg.) is newer than the
+  other (mtime comparison). Accepts strings or java.io.File's"}
+  newer? (fn [file other] (class file)))
 
 (defmethod newer? java.io.File
   [file other]
@@ -67,18 +69,21 @@
   [file other]
   (> (.lastModified (File. file)) (.lastModified (File. other))))
 
-(defmulti exists? class)
+(defmulti #^{:doc "Returns true if argument file/directory exists.
+  Accepts strings or java.io.File's"}
+  exists? class)
 (defmethod exists? java.io.File [f] (.exists f))
 (defmethod exists? String [fname] (.exists (File. fname)))
 
-(defmulti directory? class)
+(defmulti #^{:doc "Returns true if argument is a directory."}
+  directory? class)
 (defmethod directory? java.io.File [f] (.isDirectory f))
 (defmethod directory? String [fname] (.isDirectory (File. fname)))
 
-(defmulti list-dir class)
+(defmulti #^{:doc "Lists contents of a directory. Returns nil if arg is a file."}
+  list-dir class)
 (defmethod list-dir java.io.File [f] (.listFiles f))
 (defmethod list-dir String [fname] (.listFiles (File. fname)))
-
 
 (defmulti #^{:doc "Deletes a file or directory (with its contents)."}
   delete class)
