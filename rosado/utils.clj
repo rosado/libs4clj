@@ -1,5 +1,5 @@
 ;; utility functions for Clojure
-;; Roland Sadowski [szabla gmail com]
+;; Roland Sadowski [szabla gmail com] http://www.haltingproblem.net
 
 ;; Copyright (c) 2008 Roland Sadowski. All rights reserved.  The use and
 ;; distribution terms for this software are covered by the Common
