@@ -278,7 +278,7 @@
   ([hook-symbol]
 	 `(recur (~hook-symbol ~*m* [~*wi* ~*v*]) (rest ~*verts*)))
   ([hook-symbol wrapper]
-	 `(recur (~*dfs-internal* (~hook-symbol ~*m* [~*wi* ~*v*])
+	 `(recur (~wrapper (~hook-symbol ~*m* [~*wi* ~*v*])
 							  [~*wi* ~*v*])
 			 (rest ~*verts*))))
 
