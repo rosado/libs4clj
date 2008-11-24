@@ -198,46 +198,46 @@
 
 ;; customizable depth first search
 
-(def *dfs-internal*)
-(def *m*)								; holds the arg-map in main loop in internal-dfs
-(def *wi*) 								; index of 
-(def *vi*)
-(def *v*)								; index of current vert. in main loop in internal-dfs
+(def #^{:private true} *dfs-internal*)
+(def #^{:private true} *m*)								; holds the arg-map in main loop in internal-dfs
+(def #^{:private true} *wi*) 								; index of 
+(def #^{:private true} *vi*)
+(def #^{:private true} *v*)								; index of current vert. in main loop in internal-dfs
 (def *verts*) 							; holds vertices adjacent to current verts in internal dfs
 
-(def *mark-pre*)
-(def *mark-pre-fn*)
-(def *mark-post*)
-(def *mark-post-fn*)
-(def *increment-pre*)
-(def *increment-pre-fn*)
-(def *increment-post*)
-(def *increment-post-fn*)
-(def *increment-component*)
-(def *increment-component-fn*)
-(def *mark-component*)
-(def *mark-component-fn*)
+(def #^{:private true} *mark-pre*)
+(def #^{:private true} *mark-pre-fn*)
+(def #^{:private true} *mark-post*)
+(def #^{:private true} *mark-post-fn*)
+(def #^{:private true} *increment-pre*)
+(def #^{:private true} *increment-pre-fn*)
+(def #^{:private true} *increment-post*)
+(def #^{:private true} *increment-post-fn*)
+(def #^{:private true} *increment-component*)
+(def #^{:private true} *increment-component-fn*)
+(def #^{:private true} *mark-component*)
+(def #^{:private true} *mark-component-fn*)
 
-(def *tree-eg?*)
-(def *back-eg?*)
-(def *down-eg?*)
+(def #^{:private true} *tree-eg?*)
+(def #^{:private true} *back-eg?*)
+(def #^{:private true} *down-eg?*)
 ;; no cross-eg
 
-(def *tree-eg?-fn*)
-(def *back-eg?-fn*)
-(def *down-eg?-fn*)
+(def #^{:private true} *tree-eg?-fn*)
+(def #^{:private true} *back-eg?-fn*)
+(def #^{:private true} *down-eg?-fn*)
 
 ;; for symbols
-(def *tree-eg-hook*)
-(def *back-eg-hook*)
-(def *down-eg-hook*)
-(def *cross-eg-hook*)
+(def #^{:private true} *tree-eg-hook*)
+(def #^{:private true} *back-eg-hook*)
+(def #^{:private true} *down-eg-hook*)
+(def #^{:private true} *cross-eg-hook*)
 
 ;; for data (code)
-(def *tree-eg-hook-fn*)
-(def *back-eg-hook-fn*)
-(def *down-eg-hook-fn*)
-(def *cross-eg-hook-fn*)
+(def #^{:private true} *tree-eg-hook-fn*)
+(def #^{:private true} *back-eg-hook-fn*)
+(def #^{:private true} *down-eg-hook-fn*)
+(def #^{:private true} *cross-eg-hook-fn*)
 
 (defn- make-fn-map [bds]
   (reduce #(assoc %1 (first %2) (second %2)) {} bds))
