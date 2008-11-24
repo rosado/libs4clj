@@ -20,3 +20,8 @@
 	  (when-not (exists? "bin")
 		(mkdir "bin"))
 	  (sh "jar cf bin/rosado.jar -C classes rosado"))
+
+(task :test
+	  (load-file "tests/dfs-test.clj")
+	  (load-file "tests/graph-test.clj"))
+	
