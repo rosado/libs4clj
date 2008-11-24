@@ -18,5 +18,5 @@
 
 (file "bin/rosado.jar" ["classes"]
 	  (when-not (exists? "bin")
-		(mkdir "bin")
-		(sh "jar cf bin/rosado.jar -C classes rosado")))
+		(mkdir "bin"))
+	  (sh "jar cf bin/rosado.jar -C classes rosado"))
