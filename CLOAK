@@ -1,5 +1,8 @@
 (ns rosado
   (:use (rosado.cloak main actions)))
+
+;; assumptions:  clojure.jar and clojure-contrib.jar are in classpath
+;; also, classes dir must already be in your classpath (for compilation)
 	
 (task :default
 	  (when-not (exists? "classes")
@@ -11,15 +14,16 @@
 		(compile 'rosado.io)))
 
 (task :clean
-	  (when (exists? "classes")
-		(rm "classes")))
+	  (when (exists? "classes/rosado")
+		(rm "classes/rosado")))
 
 (task :jar ["bin/rosado.jar"])
 
-(file "bin/rosado.jar" ["classes"]
+(file "bin/rosado.jar" ["classes/rosado"]
 	  (when-not (exists? "bin")
 		(mkdir "bin"))
-	  (sh "jar cf bin/rosado.jar -C classes rosado"))
+	  (when (exists? "classes/rosado")
+	   (sh "jar cf bin/rosado.jar -C classes rosado" :dofail)))
 
 (task :test
 	  (load-file "tests/dfs-test.clj")
