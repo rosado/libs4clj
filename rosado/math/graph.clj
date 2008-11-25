@@ -446,9 +446,9 @@
 
 ;; end custom dfs
 
-(defn acyclic?
-  [g]
-  false)
+;; (defn acyclic?
+;;   [g]
+;;   false)
 
 ;; utility functions
 
