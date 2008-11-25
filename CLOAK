@@ -12,7 +12,7 @@
 
 (task :clean
 	  (when (exists? "classes")
-		(sh "rm -r classes")))
+		(rm "classes")))
 
 (task :jar ["bin/rosado.jar"])
 
