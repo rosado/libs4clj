@@ -102,3 +102,9 @@
 	(if (directory? fname)
 	  (delete-dir fname)
 	  (.delete fname))))
+
+(defn mkdir
+  "Creates directories, including necessary parent dirs."
+  [& dirs]
+  (doseq [dir dirs]
+	  (-> (File. dir) .mkdirs)))
