@@ -27,7 +27,8 @@
    (some #{:unbuff :ub} modes) (FileReader. file-name)))
 
 (defn read-lines 
-  "Returns a list of lines from seq."
+  "Returns a list of lines from seq.
+ The lines don't include line termination characters"
   [#^java.io.BufferedReader rdr]
   (loop [lines [] line (.readLine rdr)]
 	(if (nil? line)
