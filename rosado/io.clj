@@ -52,7 +52,7 @@
   [#^java.io.BufferedWriter a-writer lines]
   (loop [lns lines]
 	(when lns
-	  (.write a-writer (first lns))
+	  (.write a-writer #^String (first lns))
 	  (.newLine a-writer)
 	  (recur (rest lns)))))
 
@@ -63,28 +63,28 @@
   newer? (fn [file other] (class file)))
 
 (defmethod newer? java.io.File
-  [file other]
+  [#^File file #^File other]
   (> (.lastModified file) (.lastModified other)))
 
 (defmethod newer? java.lang.String
-  [file other]
+  [#^String file #^String other]
   (> (.lastModified (File. file)) (.lastModified (File. other))))
 
 (defmulti #^{:doc "Returns true if argument file/directory exists.
   Accepts strings or java.io.File's"}
   exists? class)
-(defmethod exists? java.io.File [f] (.exists f))
-(defmethod exists? String [fname] (.exists (File. fname)))
+(defmethod exists? java.io.File [#^File f] (.exists f))
+(defmethod exists? String [#^String fname] (.exists (File. fname)))
 
 (defmulti #^{:doc "Returns true if argument is a directory."}
   directory? class)
-(defmethod directory? java.io.File [f] (.isDirectory f))
-(defmethod directory? String [fname] (.isDirectory (File. fname)))
+(defmethod directory? java.io.File [#^File f] (.isDirectory f))
+(defmethod directory? String [#^String fname] (.isDirectory (File. fname)))
 
 (defmulti #^{:doc "Lists contents of a directory. Returns nil if arg is a file."}
   list-dir class)
-(defmethod list-dir java.io.File [f] (.listFiles f))
-(defmethod list-dir String [fname] (.listFiles (File. fname)))
+(defmethod list-dir java.io.File [#^File f] (.listFiles f))
+(defmethod list-dir String [#^String fname] (.listFiles (File. fname)))
 
 (defmulti #^{:doc "Deletes a file or directory (with its contents)."}
   delete class)
@@ -107,5 +107,5 @@
 (defn mkdir
   "Creates directories, including necessary parent dirs."
   [& dirs]
-  (doseq [dir dirs]
+  (doseq [#^String dir dirs]
 	  (-> (File. dir) .mkdirs)))
