@@ -18,7 +18,7 @@
   "Returns a reader or input stream (buffered).
   Optional keywords: :unbuff [:ub] - for unbuffered input. 
   :bytes - for an InputStream instead of a Reader."
-  [#^String file-name & modes]
+  [file-name & modes]
   (cond
    (nil? modes) (BufferedReader. (FileReader. file-name))
    (some #{:bytes} modes) (if (some #{:unbuff :ub} modes)
@@ -39,7 +39,7 @@
   "Returns a writer or output stream (buffered).
   Optional keywords: :unbuff [:ub] - for unbuffered output. 
   :bytes - for an OutputStream instead of a Writer."
-  [#^String file-name & modes]
+  [file-name & modes]
   (cond
    (nil? modes) (BufferedWriter. (FileWriter. file-name))
    (some #{:bytes} modes) (if (some #{:unbuff :ub} modes)
