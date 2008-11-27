@@ -4,7 +4,7 @@
 ;; assumptions:  clojure.jar and clojure-contrib.jar are in classpath
 ;; also, classes dir must already be in your classpath (for compilation)
 	
-(task :default
+(task :default [:clean]
 	  (when-not (exists? "classes")
 		(throw (Exception. "classes directory must already exist")))
 	  (binding [*compile-path* "classes"]
