@@ -19,6 +19,10 @@
 
 (task :jar ["bin/rosado.jar"])
 
+(task :jar-src
+	  "Creates a jar file with the sources"
+	  (sh "jar cf bin/rosado.jar rosado" :dofail))
+
 (file "bin/rosado.jar" ["classes/rosado"]
 	  (when-not (exists? "bin")
 		(mkdir "bin"))
