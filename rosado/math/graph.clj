@@ -114,17 +114,17 @@
   "Returns the graph with vertex v removed."
   [g v]
   (let [new-g    (alter-vertex g v nil)
-		vertices (for [i (range 1 (count new-g)) :when (not= (new-g i) nil)] i)
-		rm-fn    (fn [vert] (not= v vert))]
-	(loop [verts vertices graph new-g]
-	  (if verts
-		(recur (rest verts)
-			   (alter-adj-list-of graph
-								  (first verts)
-								  (filter rm-fn
-										  (adjacent-to new-g
-													   (first verts)))))
-		graph))))
+        vertices (for [i (range 1 (count new-g)) :when (not= (new-g i) nil)] i)
+        rm-fn    (fn [vert] (not= v vert))]
+    (loop [verts vertices graph new-g]
+      (if verts
+        (recur (next verts)
+               (alter-adj-list-of graph
+                                  (first verts)
+                                  (seq (filter rm-fn
+                                               (adjacent-to new-g
+                                                            (first verts))))))
+        graph))))
 
 (defn- flatten-pairs [coll]
   (mapcat identity coll))
@@ -133,13 +133,13 @@
   "Produces a graph from a list of ordered pairs [u v],
   where u, v -- vertices."
   [pairs]
-	 (let [vert-indices (into #{} (flatten-pairs pairs))
-		   empty-graph  (make-graph (last (sort vert-indices)))
-		   graph (loop [g empty-graph indices vert-indices]
-				   (if indices
-					 (recur (add-vertex g (first indices)) (rest indices))
-					 g))]
-	   (reduce add-edge (cons graph pairs))))
+  (let [vert-indices (into #{} (flatten-pairs pairs))
+        empty-graph  (make-graph (last (sort vert-indices)))
+        graph (loop [g empty-graph indices vert-indices]
+                (if (seq indices)
+                  (recur (add-vertex g (first indices)) (rest indices))
+                  g))]
+    (reduce add-edge (cons graph pairs))))
 
 (defn get-valid-indices
   "Returns a seq of indices for which vertices are set in given
@@ -163,7 +163,7 @@
 		   (if verts
 			 (if (not= 0 (rem (degree (g (first verts))) 2))
 			   false
-			   (recur (rest verts)))
+			   (recur (next verts)))
 			 true))))))
 
 ;; (defn euler-path
@@ -274,20 +274,20 @@
 
 (defn insert-recur-form
   ([]
-	 `(recur ~*m* (rest ~*verts*)))
+	 `(recur ~*m* (next ~*verts*)))
   ([hook-symbol]
-	 `(recur (~hook-symbol ~*m* [~*wi* ~*v*]) (rest ~*verts*)))
+	 `(recur (~hook-symbol ~*m* [~*wi* ~*v*]) (next ~*verts*)))
   ([hook-symbol wrapper]
 	 `(recur (~wrapper (~hook-symbol ~*m* [~*wi* ~*v*])
 							  [~*wi* ~*v*])
-			 (rest ~*verts*))))
+			 (next ~*verts*))))
 
 (defn- make-cond-pair-helper [t? hook-symb hook-fn]
   (when hook-fn
 	`((~t? (~*m* :graph) ~*wi* ~*v*) (recur (~hook-symb ~*m* [~*wi* ~*v*])
-											(rest *verts*)))))
+											(next *verts*)))))
 
-(defmulti make-cond-pair identity :default)
+(defmulti make-cond-pair identity)
 
 (defmethod make-cond-pair :tree-edge [kw]
   (if *tree-eg-hook-fn*
@@ -345,23 +345,23 @@
 
 (defn- make-dfs-main [dfs-internal]
   (let [m (gensym "m__") g (gensym "g__") vs (gensym "vs__") v (gensym "v(main)__")]
-	`(let [~@(insert-fn-definitions)
-		   dfs-internal# ~dfs-internal]
-	   (fn [~g vi#]
-		 (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
-										(get-valid-indices ~g)))]
-		   (loop [~vs verts#
-				  {graph# :graph
-				   pre-c# :pre
-				   post-c# :post :as ~m} ~(component-key-val-pair {:graph g :pre 0 :post 0})]
-			 (if-let [~v (first ~vs)]
-			   (cond
-				(~*tree-eg?* (~m :graph) (first ~vs) (first ~vs)) 
-				(recur (rest ~vs)
-					   (dfs-internal# ~(increment-and-mark-component m v) 
-									  [(first ~vs) (first ~vs)]))
-				:else (recur (rest ~vs) ~m))
-			   (with-meta (~m :graph) {:components (:components ~m)}))))))))
+    `(let [~@(insert-fn-definitions)
+           dfs-internal# ~dfs-internal]
+       (fn [~g vi#]
+         (let [verts# (cons vi# (remove (fn [i#] (= vi# i#))
+                                        (get-valid-indices ~g)))]
+           (loop [~vs verts#
+                  {graph# :graph
+                   pre-c# :pre
+                   post-c# :post :as ~m} ~(component-key-val-pair {:graph g :pre 0 :post 0})]
+             (if-let [~v (first ~vs)]
+               (cond
+                (~*tree-eg?* (~m :graph) (first ~vs) (first ~vs)) 
+                (recur (next ~vs)
+                       (dfs-internal# ~(increment-and-mark-component m v) 
+                                      [(first ~vs) (first ~vs)]))
+                :else (recur (next ~vs) ~m))
+               (with-meta (~m :graph) {:components (:components ~m)}))))))))
 
 (defmacro make-dfs
   "Creates a custom Depth First Search function with provided hooks

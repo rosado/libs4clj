@@ -54,7 +54,7 @@
 	(when lns
 	  (.write a-writer #^String (first lns))
 	  (.newLine a-writer)
-	  (recur (rest lns)))))
+	  (recur (next lns)))))
 
 ;; compares mtime of files
 ;; no errors/exceptions are thrown
@@ -92,7 +92,7 @@
 (defn- delete-dir [#^java.io.File dir-name]
   (doseq [f (list-dir dir-name)]
 	  (cond (not (directory? f)) (delete f)
-			:else (delete-dir f)))
+          :else (delete-dir f)))
   (.delete dir-name))
 
 (defmethod delete java.lang.String [#^java.lang.String fname]
@@ -100,9 +100,9 @@
 
 (defmethod delete java.io.File [#^java.io.File fname]
   (if (exists? fname)
-	(if (directory? fname)
-	  (delete-dir fname)
-	  (.delete fname))))
+    (if (directory? fname)
+      (delete-dir fname)
+      (.delete fname))))
 
 (defn mkdir
   "Creates directories, including necessary parent dirs."
